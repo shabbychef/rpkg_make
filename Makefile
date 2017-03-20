@@ -56,7 +56,8 @@ R_QPDF 						?= $(shell which qpdf)
 R_GSCMD						?= $(shell which gs)
 GS_QUALITY 				?= 'ebook'
 
-BUILD_FLAGS 			?= --compact-vignettes="gs+qpdf" --resave-data=best
+BUILD_FLAGS 			?= --compact-vignettes=both --resave-data=best
+DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(GS_QUALITY)
 BUILD_ENV 				 = R_QPDF=$(R_QPDF) R_GSCMD=$(R_GSCMD) \
 									 GS_QUALITY=$(GS_QUALITY)
 
@@ -107,17 +108,18 @@ $(ONE_RD) : $(EXPORTS_CPP)
 
 endif
 
+check_benv : $(DOCKER_IMG)  ## check the build environment
+	@$(DOCKER) run -it --rm --volume $(PWD):/srv:ro $(DOCKER_ENV) \
+		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck \
+		"--slave" "-e" 'print(Sys.getenv("R_QPDF"));print(Sys.getenv("R_GSCMD"));print(Sys.getenv("GS_QUALITY"));'
+
 $(PKG_TGZ) : $(PKG_DEPS) $(DOCKER_IMG)
 	$(call WARN_DEPS)
-	# check values
-	@$(DOCKER) run -it --rm --volume $(PWD):/srv:ro --entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck \
-		"--slave" "-e" 'print(Sys.getenv("R_QPDF"));print(Sys.getenv("R_GSCMD"));print(Sys.getenv("GS_QUALITY"));'
-	# build it!
-	$(DOCKER) run -it --rm --volume $(PWD):/srv:rw --entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck \
-		"CMD" "build" '$(BUILD_FLAGS)' "/srv"
+	$(DOCKER) run -it --rm --volume $(PWD):/srv:rw $(DOCKER_ENV) \
+		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck \
+		"CMD" "build" $(foreach stanza,$(BUILD_FLAGS),"$(stanza)") "/srv"
 	@echo "if that don't work, then try:"
 	@echo "r -l devtools -e 'build(".",path=".");'"
-
 
 document : $(ALL_RD) ## build Rd files
 
