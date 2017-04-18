@@ -128,7 +128,10 @@ $(RLIB_D) :
 
 # install the package into a local library using the docker image
 $(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
-	$(DOCKER) run -it --rm --volume $(PWD):/srv:ro --volume $(dir $(RLIB_D)):/opt/R/lib $(DOCKER_ENV) \
+	$(DOCKER) run -it --rm \
+		--volume $(PWD):/srv:ro \
+		--volume $(pwd $(RLIB_D)):/opt/R/lib:rw \
+		$(DOCKER_ENV) \
 		--entrypoint="r" $(USER)/$(PKG_LCNAME)-crancheck \
 		"-e" "install.packages('$<',lib='/opt/R/lib')" > $@
 
