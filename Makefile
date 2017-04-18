@@ -26,6 +26,8 @@ PKG_LCNAME 				:= $(shell echo $(PKG_NAME) | tr 'A-Z' 'a-z')
 PKG_VERSION				:= $(VERSION)
 PKG_SRC 					:= $(shell basename $(PWD))
 
+RLIB_D 						?= ./.R/lib
+
 PKG_TGZ 					 = $(PKG_NAME)_$(PKG_VERSION).tar.gz
 PKG_INSTALLED 		 = .$(basename $(basename $(PKG_TGZ))).installed
 PKG_CRANCHECK 		 = $(basename $(basename $(PKG_TGZ))).crancheck
@@ -121,12 +123,18 @@ $(PKG_TGZ) : $(PKG_DEPS) $(DOCKER_IMG)
 	@echo "if that don't work, then try:"
 	@echo "r -l devtools -e 'build(".",path=".");'"
 
-document : $(ALL_RD) ## build Rd files
+$(RLIB_D) :
+	mkdir -p $@
 
-$(PKG_INSTALLED) : .%.installed : %.tar.gz
-	r -e 'install.packages("$<");'
+# install the package into a local library using the docker image
+$(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
+	$(DOCKER) run -it --rm --volume $(PWD):/srv:ro --volume $(dir $(RLIB_D)):/opt/R/lib $(DOCKER_ENV) \
+		--entrypoint="r" $(USER)/$(PKG_LCNAME)-crancheck \
+		"-e" "install.packages('$<',lib='/opt/R/lib')" > $@
 
 installed : $(PKG_INSTALLED) ## install the package
+
+document : $(ALL_RD) ## build Rd files
 
 tools/figure :
 	@mkdir -p $@
