@@ -130,7 +130,7 @@ $(RLIB_D) :
 $(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
 	$(DOCKER) run -it --rm \
 		--volume $(PWD):/srv:ro \
-		--volume $(pwd $(RLIB_D)):/opt/R/lib:rw \
+		--volume $$(pwd $(RLIB_D)):/opt/R/lib:rw \
 		$(DOCKER_ENV) \
 		--entrypoint="r" $(USER)/$(PKG_LCNAME)-crancheck \
 		"-e" "install.packages('$<',lib='/opt/R/lib')" > $@
