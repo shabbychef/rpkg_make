@@ -59,7 +59,7 @@ R_GSCMD						?= $(shell which gs)
 GS_QUALITY 				?= 'ebook'
 
 BUILD_FLAGS 			?= --compact-vignettes=both --resave-data=best
-DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(GS_QUALITY)
+DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(GS_QUALITY) -e R_LIBS_USER='/opt/R/lib'
 BUILD_ENV 				 = R_QPDF=$(R_QPDF) R_GSCMD=$(R_GSCMD) \
 									 GS_QUALITY=$(GS_QUALITY)
 
@@ -136,6 +136,14 @@ $(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
 		"-e" "install.packages('$<',lib='/opt/R/lib')" > $@
 
 installed : $(PKG_INSTALLED) ## install the package
+
+# use the installed package?
+.%.useR : .%.installed $(DOCKER_IMG) | $(RLIB_D)
+	$(DOCKER) run -it --rm \
+		--volume $$(pwd $(RLIB_D)):/opt/R/lib:rw \
+		$(DOCKER_ENV) \
+		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck 
+	touch $@
 
 document : $(ALL_RD) ## build Rd files
 
