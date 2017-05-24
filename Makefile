@@ -99,6 +99,8 @@ attributes : $(EXPORTS_CPP) ## build the file src/RcppExports.cpp
 
 $(EXPORTS_CPP) $(EXPORTS_R) : $(SRC_CPP)
 	r -l Rcpp -e 'compileAttributes(".")'
+	@[ -f $(EXPORTS_CPP) ] && touch $(EXPORTS_CPP) || true
+	@[ -f $(EXPORTS_R) ] && touch $(EXPORTS_R) || true
 
 $(ONE_RD) : $(EXPORTS_CPP)
 	r -l devtools -e 'document(".");'
