@@ -203,5 +203,12 @@ viewit : README.md ## view the README.md locally
 	@echo "to stop, run"
 	@echo 'docker rm $$(docker stop $(PKG_LCNAME))'
 
+.PHONY : submodules 
+
+# http://muddygoat.org/articles/git-submodules
+submodules : ## refresh all git submodules, including rpkg_make
+	git submodule foreach git checkout master
+	git submodule foreach git pull
+
 #for vim modeline: (do not edit)
 # vim:ts=2:sw=2:tw=129:fdm=marker:fmr=FOLDUP,UNFOLD:cms=#%s:tags=.tags;:syn=make:ft=make:ai:si:cin:nu:fo=croqt:cino=p0t0c5(0:
