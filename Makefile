@@ -175,6 +175,7 @@ DESCRIPTION : % : m4/%.m4 Makefile ## build the DESCRIPTION file
 
 NAMESPACE : DESCRIPTION $(ALL_R) ## build the NAMESPACE file
 	r -l roxygen2 -e 'if (require(roxygen2)) { roxygenize(package.dir="$(<D)") }'
+	@-touch $@
 
 coverage : installed ## compute package coverage
 	R --vanilla -q --no-save -e 'if (require(covr)) { print(covr::package_coverage(".")) }'
