@@ -190,6 +190,10 @@ really_tag : ## actually github tag
 	git tag -a r$(VERSION) -m 'release $(VERSION)'
 	git push --tags
 
+untag : ## advice on github untagging
+	@-echo "git tag --delete r$(VERSION)"
+	@-echo "git push origin :r$(VERSION)"
+
 # drat
 
 $(DRAT_SENTINEL) : $(PKG_TGZ)
