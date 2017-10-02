@@ -119,7 +119,7 @@ check_benv : $(DOCKER_IMG)  ## check the build environment
 
 $(PKG_TGZ) : $(PKG_DEPS) $(DOCKER_IMG)
 	$(call WARN_DEPS)
-	$(DOCKER) run -it --rm --volume $(PWD):/srv:rw $(DOCKER_ENV) \
+	$(DOCKER) run -it --rm --user $$UID:$$UID --volume $(PWD):/srv:rw $(DOCKER_ENV) \
 		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck \
 		"CMD" "build" $(foreach stanza,$(BUILD_FLAGS),"$(stanza)") "/srv"
 	@echo "if that don't work, then try:"
@@ -164,7 +164,7 @@ $(DOCKER_IMG) : docker/Dockerfile
 %.crancheck : %.tar.gz $(DOCKER_IMG)
 	$(eval CHECK_TMP:=$(shell mktemp -u .check_tmp_$(PKG_LCNAME)_XXXXXXXXXXXXXXXXXX))
 	mkdir -p $(CHECK_TMP)
-	$(DOCKER) run -it --rm --volume $(PWD):/srv:ro --volume $$(pwd $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
+	$(DOCKER) run -it --rm --user $$UID:$$UID --volume $(PWD):/srv:ro --volume $$(pwd $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/00check.log | tee -a $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/$(PKG_NAME)-Ex.timings | tee -a $@
 
