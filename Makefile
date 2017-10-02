@@ -58,7 +58,9 @@ R_QPDF 						?= $(shell which qpdf)
 R_GSCMD						?= $(shell which gs)
 GS_QUALITY 				?= 'ebook'
 
+GID 							?= $$UID
 BUILD_FLAGS 			?= --compact-vignettes=both --resave-data=best
+DOCKER_RUN_FLAGS 		= --user $$UID:$(GID)
 DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(GS_QUALITY) -e R_LIBS_USER='/opt/R/lib'
 BUILD_ENV 				 = R_QPDF=$(R_QPDF) R_GSCMD=$(R_GSCMD) \
 									 GS_QUALITY=$(GS_QUALITY)
@@ -113,13 +115,13 @@ $(ONE_RD) : $(EXPORTS_CPP)
 endif
 
 check_benv : $(DOCKER_IMG)  ## check the build environment
-	@$(DOCKER) run -it --rm --volume $(PWD):/srv:ro $(DOCKER_ENV) \
+	@$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro $(DOCKER_ENV) \
 		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck \
 		"--slave" "-e" 'print(Sys.getenv("R_QPDF"));print(Sys.getenv("R_GSCMD"));print(Sys.getenv("GS_QUALITY"));'
 
 $(PKG_TGZ) : $(PKG_DEPS) $(DOCKER_IMG)
 	$(call WARN_DEPS)
-	$(DOCKER) run -it --rm --user $$UID:$$UID --volume $(PWD):/srv:rw $(DOCKER_ENV) \
+	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:rw $(DOCKER_ENV) \
 		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck \
 		"CMD" "build" $(foreach stanza,$(BUILD_FLAGS),"$(stanza)") "/srv"
 	@echo "if that don't work, then try:"
@@ -130,8 +132,7 @@ $(RLIB_D) :
 
 # install the package into a local library using the docker image
 $(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
-	$(DOCKER) run -it --rm \
-		--volume $(PWD):/srv:ro \
+	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro \
 		--volume $$(pwd $(RLIB_D)):/opt/R/lib:rw \
 		$(DOCKER_ENV) \
 		--entrypoint="r" $(USER)/$(PKG_LCNAME)-crancheck \
@@ -141,8 +142,7 @@ installed : $(PKG_INSTALLED) ## install the package
 
 # use the installed package?
 .%.useR : .%.installed $(DOCKER_IMG) | $(RLIB_D)
-	$(DOCKER) run -it --rm \
-		--volume $$(pwd $(RLIB_D)):/opt/R/lib:rw \
+	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $$(pwd $(RLIB_D)):/opt/R/lib:rw \
 		$(DOCKER_ENV) \
 		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck 
 	touch $@
@@ -164,7 +164,7 @@ $(DOCKER_IMG) : docker/Dockerfile
 %.crancheck : %.tar.gz $(DOCKER_IMG)
 	$(eval CHECK_TMP:=$(shell mktemp -u .check_tmp_$(PKG_LCNAME)_XXXXXXXXXXXXXXXXXX))
 	mkdir -p $(CHECK_TMP)
-	$(DOCKER) run -it --rm --user $$UID:$$UID --volume $(PWD):/srv:ro --volume $$(pwd $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
+	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro --volume $$(pwd $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/00check.log | tee -a $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/$(PKG_NAME)-Ex.timings | tee -a $@
 
