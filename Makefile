@@ -215,5 +215,8 @@ submodules : ## refresh all git submodules, including rpkg_make
 	git submodule foreach git checkout master
 	git submodule foreach git pull
 
+Rd2.pdf : $(ALL_RD) ## make pdf manual
+	@-R CMD Rd2pdf --no-clean ./man
+
 #for vim modeline: (do not edit)
 # vim:ts=2:sw=2:tw=129:fdm=marker:fmr=FOLDUP,UNFOLD:cms=#%s:tags=.tags;:syn=make:ft=make:ai:si:cin:nu:fo=croqt:cino=p0t0c5(0:
