@@ -140,6 +140,9 @@ $(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
 
 installed : $(PKG_INSTALLED) ## install the package
 
+rinstall : $(PKG_TGZ) ## install the package o nthe local machine, in default library.
+	R CMD INSTALL $<
+
 # use the installed package?
 .%.useR : .%.installed $(DOCKER_IMG) | $(RLIB_D)
 	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $$(pwd $(RLIB_D)):/opt/R/lib:rw \
