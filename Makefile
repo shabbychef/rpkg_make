@@ -158,6 +158,9 @@ tools/figure :
 README.md : README.Rmd $(PKG_INSTALLED) | tools/figure
 	r -l Rcpp -l knitr -l devtools -e 'setwd("$(<D)");if (require(knitr)) { knit("$(<F)") }'
 
+data/%.rda : data-raw/%.csv
+	r -l devtools,readr -e '$* <- readr::read_csv("$<");devtools::use_data($*,overwrite=TRUE)'
+
 docker_img : $(DOCKER_IMG) ## build the docker image
 
 $(DOCKER_IMG) : docker/Dockerfile  
