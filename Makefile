@@ -179,8 +179,9 @@ check: $(PKG_CRANCHECK) ## check the package as CRAN.
 DESCRIPTION : % : m4/%.m4 Makefile ## build the DESCRIPTION file
 	m4 -I ./m4 -DVERSION=$(VERSION) -DDATE=$(TODAY) -DPKG_NAME=$(PKG_NAME) $< > $@
 
+	#r -l roxygen2 -e 'if (require(roxygen2)) { roxygenize(package.dir="$(<D)") }'
 NAMESPACE : DESCRIPTION $(ALL_R) ## build the NAMESPACE file
-	r -l roxygen2 -e 'if (require(roxygen2)) { roxygenize(package.dir="$(<D)") }'
+	r -l devtools -e 'if (devtools(roxygen2)) { document(pkg="$(<D)") }'
 	@-touch $@
 
 coverage : installed ## compute package coverage
