@@ -181,7 +181,7 @@ DESCRIPTION : % : m4/%.m4 Makefile ## build the DESCRIPTION file
 
 	#r -l roxygen2 -e 'if (require(roxygen2)) { roxygenize(package.dir="$(<D)") }'
 NAMESPACE : DESCRIPTION $(ALL_R) ## build the NAMESPACE file
-	r -l devtools -e 'if (devtools(roxygen2)) { document(pkg="$(<D)") }'
+	r -l devtools -e 'if (require(devtools)) { document(pkg="$(<D)") }'
 	@-touch $@
 
 coverage : installed ## compute package coverage
