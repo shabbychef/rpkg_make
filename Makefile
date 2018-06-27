@@ -174,6 +174,15 @@ $(DOCKER_IMG) : docker/Dockerfile
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/00check.log | tee -a $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/$(PKG_NAME)-Ex.timings | tee -a $@
 
+%.md : %.tar.gz README.Rmd rpkg_make/build_readme.r $(DOCKER_IMG)
+	$(eval CHECK_TMP:=$(shell mktemp -u .check_tmp_$(PKG_LCNAME)_XXXXXXXXXXXXXXXXXX))
+	mkdir -p $(CHECK_TMP)
+	$(DOCKER) run -it --rm \
+		--volume $(PWD):/srv:ro \
+		--volume $$(pwd $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw \
+		--entrypoint="r" $(USER)/$(PKG_LCNAME)-crancheck \
+		"/srv/rpkg_make/build_readme.r" "-w /tmp" "-p /srv/$*.tar.gz" "/srv/README.Rmd" "/tmp/$*.md"
+
 check: $(PKG_CRANCHECK) ## check the package as CRAN.
 
 DESCRIPTION : % : m4/%.m4 Makefile ## build the DESCRIPTION file
