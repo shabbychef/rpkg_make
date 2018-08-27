@@ -133,7 +133,7 @@ $(RLIB_D) :
 # install the package into a local library using the docker image
 $(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
 	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro \
-		--volume $$(pwd $(RLIB_D)):/opt/R/lib:rw \
+		--volume $$(readlink -f $(RLIB_D)):/opt/R/lib:rw \
 		$(DOCKER_ENV) \
 		--entrypoint="r" $(USER)/$(PKG_LCNAME)-crancheck \
 		"-e" "install.packages('$<',lib='/opt/R/lib')" > $@
@@ -145,7 +145,7 @@ rinstall : $(PKG_TGZ) ## install the package o nthe local machine, in default li
 
 # use the installed package?
 .%.useR : .%.installed $(DOCKER_IMG) | $(RLIB_D)
-	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $$(pwd $(RLIB_D)):/opt/R/lib:rw \
+	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $$(readlink -f $(RLIB_D)):/opt/R/lib:rw \
 		$(DOCKER_ENV) \
 		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck 
 	touch $@
@@ -170,7 +170,7 @@ $(DOCKER_IMG) : docker/Dockerfile
 %.crancheck : %.tar.gz $(DOCKER_IMG)
 	$(eval CHECK_TMP:=$(shell mktemp -u .check_tmp_$(PKG_LCNAME)_XXXXXXXXXXXXXXXXXX))
 	mkdir -p $(CHECK_TMP)
-	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro --volume $$(pwd $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
+	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro --volume $$(readlink -f $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/00check.log | tee -a $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/$(PKG_NAME)-Ex.timings | tee -a $@
 
@@ -179,7 +179,7 @@ $(DOCKER_IMG) : docker/Dockerfile
 	mkdir -p $(CHECK_TMP)
 	$(DOCKER) run -it --rm \
 		--volume $(PWD):/srv:ro \
-		--volume $$(pwd $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw \
+		--volume $$(readlink -f $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw \
 		--entrypoint="r" $(USER)/$(PKG_LCNAME)-crancheck \
 		"/srv/rpkg_make/build_readme.r" "-w /tmp" "-p /srv/$*.tar.gz" "/srv/README.Rmd" "/tmp/$*.md"
 
