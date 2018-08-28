@@ -171,7 +171,7 @@ $(DOCKER_IMG) : docker/Dockerfile
 %.crancheck : %.tar.gz $(DOCKER_IMG)
 	$(eval CHECK_TMP:=$(shell mktemp -u .check_tmp_$(PKG_LCNAME)_XXXXXXXXXXXXXXXXXX))
 	mkdir -p $(CHECK_TMP)
-	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro --volume $$(readlink -f $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
+	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) $(DOCKER_EXTRA_ENV) --volume $(PWD):/srv:ro --volume $$(readlink -f $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/00check.log | tee -a $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/$(PKG_NAME)-Ex.timings | tee -a $@
 
