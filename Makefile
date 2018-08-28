@@ -61,7 +61,8 @@ GS_QUALITY 				?= 'ebook'
 GID 							?= $$UID
 BUILD_FLAGS 			?= --compact-vignettes=both --resave-data=best
 DOCKER_RUN_FLAGS 		= --user $$UID:$(GID)
-DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(GS_QUALITY) -e R_LIBS_USER='/opt/R/lib'
+DOCKER_EXTRA_ENV 		?= 
+DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(GS_QUALITY) -e R_LIBS_USER='/opt/R/lib' $(DOCKER_EXTRA_ENV)
 BUILD_ENV 				 = R_QPDF=$(R_QPDF) R_GSCMD=$(R_GSCMD) \
 									 GS_QUALITY=$(GS_QUALITY)
 
