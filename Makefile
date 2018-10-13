@@ -140,7 +140,7 @@ $(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
 
 installed : $(PKG_INSTALLED) ## install the package
 
-rinstall : $(PKG_TGZ) ## install the package o nthe local machine, in default library.
+rinstall : $(PKG_TGZ) ## install the package on the local machine, in default library.
 	R CMD INSTALL $<
 
 # use the installed package?
@@ -233,6 +233,11 @@ submodules : ## refresh all git submodules, including rpkg_make
 
 Rd2.pdf : $(ALL_RD) ## make pdf manual
 	@-R CMD Rd2pdf --no-clean ./man
+
+.tags :  ## make a ctags file
+	$(eval TMPTAGS := $(shell mktemp -u .tmptags_XXXXXXXXXXXXXXXX))
+	nice -n 18 ctags -f $(TMPTAGS) --recurse --language-force=R --fields=+i `find . -regextype posix-egrep -regex '.*.R(nw)?'`;
+	mv $(TMPTAGS) $@
 
 #for vim modeline: (do not edit)
 # vim:ts=2:sw=2:tw=129:fdm=marker:fmr=FOLDUP,UNFOLD:cms=#%s:tags=.tags;:syn=make:ft=make:ai:si:cin:nu:fo=croqt:cino=p0t0c5(0:
