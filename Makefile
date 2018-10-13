@@ -61,7 +61,8 @@ GS_QUALITY 				?= 'ebook'
 GID 							?= $$UID
 BUILD_FLAGS 			?= --compact-vignettes=both --resave-data=best
 DOCKER_RUN_FLAGS 		= --user $$UID:$(GID)
-DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(GS_QUALITY) -e R_LIBS_USER='/opt/R/lib'
+DOCKER_EXTRA_ENV 		?= 
+DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(GS_QUALITY) -e R_LIBS_USER='/opt/R/lib' $(DOCKER_EXTRA_ENV)
 BUILD_ENV 				 = R_QPDF=$(R_QPDF) R_GSCMD=$(R_GSCMD) \
 									 GS_QUALITY=$(GS_QUALITY)
 
@@ -170,7 +171,7 @@ $(DOCKER_IMG) : docker/Dockerfile
 %.crancheck : %.tar.gz $(DOCKER_IMG)
 	$(eval CHECK_TMP:=$(shell mktemp -u .check_tmp_$(PKG_LCNAME)_XXXXXXXXXXXXXXXXXX))
 	mkdir -p $(CHECK_TMP)
-	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro --volume $$(readlink -f $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
+	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) $(DOCKER_EXTRA_ENV) --volume $(PWD):/srv:ro --volume $$(readlink -f $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/00check.log | tee -a $@
 	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/$(PKG_NAME)-Ex.timings | tee -a $@
 
