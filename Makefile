@@ -28,6 +28,16 @@ PKG_SRC 					:= $(shell basename $(PWD))
 
 RLIB_D 						?= ./.R/lib
 
+UNAME 						:= $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+LITTLER 					?= $(shell which littler)
+BIGR 							?= $(shell which r)
+else
+LITTLER 					?= $(shell which r)
+BIGR 							?= $(shell which R)
+endif
+
 PKG_TGZ 					 = $(PKG_NAME)_$(PKG_VERSION).tar.gz
 PKG_INSTALLED 		 = .$(basename $(basename $(PKG_TGZ))).installed
 PKG_CRANCHECK 		 = $(basename $(basename $(PKG_TGZ))).crancheck
@@ -101,16 +111,16 @@ ifdef RPKG_USES_RCPP
 attributes : $(EXPORTS_CPP) ## build the file src/RcppExports.cpp
 
 $(EXPORTS_CPP) $(EXPORTS_R) : $(SRC_CPP)
-	r -l Rcpp -e 'compileAttributes(".")'
+	$(LITTLER) -l Rcpp -e 'compileAttributes(".")'
 	@[ -f $(EXPORTS_CPP) ] && touch $(EXPORTS_CPP) || true
 	@[ -f $(EXPORTS_R) ] && touch $(EXPORTS_R) || true
 
 $(ONE_RD) : $(EXPORTS_CPP)
-	r -l devtools -e 'document(".");'
+	$(LITTLER) -l devtools -e 'document(".");'
 	@touch $@
 else
 $(ONE_RD) : $(EXPORTS_CPP)
-	r -l devtools -e 'document(".");'
+	$(LITTLER) -l devtools -e 'document(".");'
 	@touch $@
 
 endif
@@ -142,7 +152,7 @@ $(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
 installed : $(PKG_INSTALLED) ## install the package
 
 rinstall : $(PKG_TGZ) ## install the package on the local machine, in default library.
-	R CMD INSTALL $<
+	$(BIGR) CMD INSTALL $<
 
 # use the installed package?
 .%.useR : .%.installed $(DOCKER_IMG) | $(RLIB_D)
@@ -157,10 +167,10 @@ tools/figure :
 	@mkdir -p $@
 
 README.md : README.Rmd $(PKG_INSTALLED) | tools/figure
-	r -l Rcpp -l knitr -l devtools -e 'setwd("$(<D)");if (require(knitr)) { knit("$(<F)") }'
+	$(LITTLER) -l Rcpp -l knitr -l devtools -e 'setwd("$(<D)");if (require(knitr)) { knit("$(<F)") }'
 
 data/%.rda : data-raw/%.csv
-	r -l devtools,readr -e '$* <- readr::read_csv("$<");devtools::use_data($*,overwrite=TRUE)'
+	$(LITTLER) -l devtools,readr -e '$* <- readr::read_csv("$<");devtools::use_data($*,overwrite=TRUE)'
 
 docker_img : $(DOCKER_IMG) ## build the docker image
 
@@ -189,13 +199,13 @@ check: $(PKG_CRANCHECK) ## check the package as CRAN.
 DESCRIPTION : % : m4/%.m4 Makefile ## build the DESCRIPTION file
 	m4 -I ./m4 -DVERSION=$(VERSION) -DDATE=$(TODAY) -DPKG_NAME=$(PKG_NAME) $< > $@
 
-	#r -l roxygen2 -e 'if (require(roxygen2)) { roxygenize(package.dir="$(<D)") }'
+	#$(LITTLER) -l roxygen2 -e 'if (require(roxygen2)) { roxygenize(package.dir="$(<D)") }'
 NAMESPACE : DESCRIPTION $(ALL_R) ## build the NAMESPACE file
-	r -l devtools -e 'if (require(devtools)) { document(pkg="$(<D)") }'
+	$(LITTLER) -l devtools -e 'if (require(devtools)) { document(pkg="$(<D)") }'
 	@-touch $@
 
 coverage : installed ## compute package coverage
-	R --vanilla -q --no-save -e 'if (require(covr)) { print(covr::package_coverage(".")) }'
+	$(BIGR) --vanilla -q --no-save -e 'if (require(covr)) { print(covr::package_coverage(".")) }'
 
 # github tags
 
@@ -215,7 +225,7 @@ untag : ## advice on github untagging
 
 $(DRAT_SENTINEL) : $(PKG_TGZ)
 	@cd ~/github/drat && git pull origin gh-pages && cd -
-	R --slave -e "drat:::insertPackage('$<',repodir='~/github/drat',commit=TRUE)"
+	$(BIGR) --slave -e "drat:::insertPackage('$<',repodir='~/github/drat',commit=TRUE)"
 
 dratit : $(DRAT_SENTINEL) ## insert into my drat store
 
@@ -233,7 +243,7 @@ submodules : ## refresh all git submodules, including rpkg_make
 	git submodule foreach git pull
 
 Rd2.pdf : $(ALL_RD) ## make pdf manual
-	@-R CMD Rd2pdf --no-clean ./man
+	@-$(BIGR) CMD Rd2pdf --no-clean ./man
 
 .tags :  ## make a ctags file
 	$(eval TMPTAGS := $(shell mktemp -u .tmptags_XXXXXXXXXXXXXXXX))
