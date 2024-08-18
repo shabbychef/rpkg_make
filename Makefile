@@ -76,9 +76,6 @@ DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(
 BUILD_ENV 				 = R_QPDF=$(R_QPDF) R_GSCMD=$(R_GSCMD) \
 									 GS_QUALITY=$(GS_QUALITY)
 
-DOCKER 						?= $(shell which docker)
-DOCKER_IMG 				 = .docker_img
-
 ############## DEFAULT ##############
 
 .DEFAULT_GOAL 	:= help
@@ -88,7 +85,7 @@ DOCKER_IMG 				 = .docker_img
 .PHONY   : help targets
 .PHONY   : build attributes document docker_img
 .SUFFIXES: 
-.PRECIOUS: $(DOCKER_IMG)
+.PRECIOUS: 
 ifdef RPKG_USES_RCPP
 .PRECIOUS: %.cpp 
 endif
@@ -125,41 +122,15 @@ $(ONE_RD) : $(EXPORTS_CPP)
 
 endif
 
-check_benv : $(DOCKER_IMG)  ## check the build environment
-	@$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro $(DOCKER_ENV) \
-		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck \
-		"--slave" "-e" 'print(Sys.getenv("R_QPDF"));print(Sys.getenv("R_GSCMD"));print(Sys.getenv("GS_QUALITY"));'
-
 $(PKG_TGZ) : $(PKG_DEPS) $(DOCKER_IMG)
 	$(call WARN_DEPS)
-	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:rw $(DOCKER_ENV) \
-		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck \
-		"CMD" "build" $(foreach stanza,$(BUILD_FLAGS),"$(stanza)") "/srv"
-	@echo "if that don't work, then try:"
-	@echo "r -l devtools -e 'build(".",path=".");'"
+	$(LITTLER) -l devtools -e 'build(".",path=".",args=c($(foreach stanza,$(BUILD_FLAGS),"$(stanza)")));'
 
 $(RLIB_D) :
 	mkdir -p $@
 
-# install the package into a local library using the docker image
-$(PKG_INSTALLED) : .%.installed : %.tar.gz $(DOCKER_IMG) | $(RLIB_D)
-	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $(PWD):/srv:ro \
-		--volume $$(readlink -f $(RLIB_D)):/opt/R/lib:rw \
-		$(DOCKER_ENV) \
-		--entrypoint="r" $(USER)/$(PKG_LCNAME)-crancheck \
-		"-e" "install.packages('$<',lib='/opt/R/lib')" > $@
-
-installed : $(PKG_INSTALLED) ## install the package
-
 rinstall : $(PKG_TGZ) ## install the package on the local machine, in default library.
 	$(BIGR) CMD INSTALL $<
-
-# use the installed package?
-.%.useR : .%.installed $(DOCKER_IMG) | $(RLIB_D)
-	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) --volume $$(readlink -f $(RLIB_D)):/opt/R/lib:rw \
-		$(DOCKER_ENV) \
-		--entrypoint="R" $(USER)/$(PKG_LCNAME)-crancheck 
-	touch $@
 
 document : $(ALL_RD) ## build Rd files
 
@@ -171,12 +142,6 @@ README.md : README.Rmd $(PKG_INSTALLED) | tools/figure
 
 data/%.rda : data-raw/%.csv
 	$(LITTLER) -l devtools,readr -e '$* <- readr::read_csv("$<");devtools::use_data($*,overwrite=TRUE)'
-
-docker_img : $(DOCKER_IMG) ## build the docker image
-
-$(DOCKER_IMG) : docker/Dockerfile  
-	$(DOCKER) build --rm -t $(USER)/$(PKG_LCNAME)-crancheck docker
-	touch $@
 
 %.crancheck : %.tar.gz $(DOCKER_IMG)
 	$(eval CHECK_TMP:=$(shell mktemp -u .check_tmp_$(PKG_LCNAME)_XXXXXXXXXXXXXXXXXX))
