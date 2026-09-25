@@ -83,7 +83,7 @@ BUILD_ENV 				 = R_QPDF=$(R_QPDF) R_GSCMD=$(R_GSCMD) \
 ############## MARKERS ##############
 
 .PHONY   : help targets
-.PHONY   : build attributes document docker_img
+.PHONY   : build attributes document docker_img test
 .SUFFIXES: 
 .PRECIOUS: 
 ifdef RPKG_USES_RCPP
@@ -143,13 +143,6 @@ README.md : README.Rmd $(PKG_INSTALLED) | tools/figure
 data/%.rda : data-raw/%.csv
 	$(LITTLER) -l devtools,readr -e '$* <- readr::read_csv("$<");devtools::use_data($*,overwrite=TRUE)'
 
-%.crancheck : %.tar.gz $(DOCKER_IMG)
-	$(eval CHECK_TMP:=$(shell mktemp -u .check_tmp_$(PKG_LCNAME)_XXXXXXXXXXXXXXXXXX))
-	mkdir -p $(CHECK_TMP)
-	$(DOCKER) run -it --rm $(DOCKER_RUN_FLAGS) $(DOCKER_EXTRA_ENV) --volume $(PWD):/srv:ro --volume $$(readlink -f $(CHECK_TMP))/$(CHECK_TMP):/tmp:rw $(USER)/$(PKG_LCNAME)-crancheck $< | tee $@
-	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/00check.log | tee -a $@
-	@-cat $(CHECK_TMP)/$(PKG_NAME).Rcheck/$(PKG_NAME)-Ex.timings | tee -a $@
-
 %.md : %.tar.gz README.Rmd rpkg_make/build_readme.r $(DOCKER_IMG)
 	$(eval CHECK_TMP:=$(shell mktemp -u .check_tmp_$(PKG_LCNAME)_XXXXXXXXXXXXXXXXXX))
 	mkdir -p $(CHECK_TMP)
@@ -160,6 +153,9 @@ data/%.rda : data-raw/%.csv
 		"/srv/rpkg_make/build_readme.r" "-w /tmp" "-p /srv/$*.tar.gz" "/srv/README.Rmd" "/tmp/$*.md"
 
 check: $(PKG_CRANCHECK) ## check the package as CRAN.
+
+test: ## run the tests
+	$(LITTLER) -l devtools -e 'test(".")'
 
 DESCRIPTION : % : m4/%.m4 Makefile ## build the DESCRIPTION file
 	m4 -I ./m4 -DVERSION=$(VERSION) -DDATE=$(TODAY) -DPKG_NAME=$(PKG_NAME) $< > $@
