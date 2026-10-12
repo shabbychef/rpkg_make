@@ -76,6 +76,14 @@ DOCKER_ENV 				 = -e R_QPDF='$(R_QPDF)' -e R_GSCMD='$(R_GSCMD)' -e GS_QUALITY=$(
 BUILD_ENV 				 = R_QPDF=$(R_QPDF) R_GSCMD=$(R_GSCMD) \
 									 GS_QUALITY=$(GS_QUALITY)
 
+
+null  :=
+space := $(null) $(null)
+comma := ,
+
+# Replace spaces with commas
+CS_BUILD_FLAGS 		= $(subst $(space),$(comma),$(foreach stanza,$(BUILD_FLAGS),"$(stanza)"))
+
 ############## DEFAULT ##############
 
 .DEFAULT_GOAL 	:= help
@@ -124,13 +132,16 @@ endif
 
 $(PKG_TGZ) : $(PKG_DEPS) $(DOCKER_IMG)
 	$(call WARN_DEPS)
-	$(LITTLER) -l devtools -e 'build(".",path=".",args=c($(foreach stanza,$(BUILD_FLAGS),"$(stanza)")));'
+	$(LITTLER) -l devtools -e 'build(".",path=".",args=c($(CS_BUILD_FLAGS)));'
 
 $(RLIB_D) :
 	mkdir -p $@
 
 rinstall : $(PKG_TGZ) ## install the package on the local machine, in default library.
 	$(BIGR) CMD INSTALL $<
+	@-touch $@
+
+rinstall : $(PKG_INSTALLED) ## install the package on the local machine, in default library.
 
 document : $(ALL_RD) ## build Rd files
 
